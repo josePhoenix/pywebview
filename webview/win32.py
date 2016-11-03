@@ -27,6 +27,7 @@ from webview.win32_shared import set_ie_mode
 from webview.localization import localization
 from webview import OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 
+logger = logging.getLogger(__name__)
 
 """
 
@@ -203,8 +204,7 @@ class BrowserView(object):
 
     def create_file_dialog(self, dialog_type, directory, allow_multiple, save_filename):
         if not directory:
-            initial_directory = os.environ['temp']
-
+            directory = os.environ['temp']
         try:
             if dialog_type == FOLDER_DIALOG:
                 desktop_pidl = shell.SHGetFolderLocation(0, shellcon.CSIDL_DESKTOP, 0, 0)
@@ -221,7 +221,7 @@ class BrowserView(object):
                     flags = flags | win32con.OFN_ALLOWMULTISELECT
 
                 file_path, customfilter, flags = \
-                    win32gui.GetOpenFileNameW(InitialDir=initial_directory, Flags=flags, File=None, DefExt='',
+                    win32gui.GetOpenFileNameW(InitialDir=directory, Flags=flags, File=None, DefExt='',
                                               Title='', Filter=file_filter, CustomFilter=custom_filter, FilterIndex=0)
 
                 parts = file_path.split('\x00')
@@ -236,13 +236,15 @@ class BrowserView(object):
                 custom_filter = localization["windows.fileFilter.otherFiles"] + u"\0*.*\0"
 
                 file_path, customfilter, flags = \
-                    win32gui.GetSaveFileNameW(InitialDir=initial_directory, File=save_filename, DefExt='', Title='',
+                    win32gui.GetSaveFileNameW(InitialDir=directory, File=save_filename, DefExt='', Title='',
                                               Filter=file_filter, CustomFilter=custom_filter, FilterIndex=0)
+        except Exception as e:
+            logger.debug("File dialog crash", exc_info=True)
+            file_path = None
 
-            return file_path
 
-        except:
-            return None
+        return file_path
+
 
     def _destroy(self):
         del self.browser
